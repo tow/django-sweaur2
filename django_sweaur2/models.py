@@ -1,16 +1,14 @@
 from __future__ import absolute_import
 
-import datetime, json
+import datetime
 
-from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
 from django.db import models
 
-from sweaur2.client import Client as Sweaur2Client
-from sweaur2.client_store import ClientStore
 from sweaur2.token_store import TokenStore
 from sweaur2.tokens import AccessToken as Sweaur2AccessToken, RefreshToken as Sweaur2RefreshToken
 
+from .client import Client
 from .settings import ACCESS_TOKEN_LENGTH, ACCESS_TOKEN_SECRET_LENGTH
 
 
@@ -127,37 +125,3 @@ class AccessToken(Token):
                                   old_refresh_token=old_refresh_token_string,
                                   new_refresh_token=new_refresh_token_string,
                                   extra_parameters=self.extra_parameters)
-
-
-class Client(Sweaur2Client):
-    def __init__(self, user):
-        self.user = user
-        self.client_id = user.username
-
-    def check_secret(self, client_secret):
-        user = authenticate(username=self.client_id, password=client_secret)
-        if user:
-            return user.is_active
-        return False
-
-
-class DjangoClientStore(ClientStore):
-    def make_client(self, client, active=True):
-        user = User.objects.create(username=client.client_id)
-        user.set_password(client.client_secret)
-        if not active:
-            user.is_active = False
-        user.save()
-        return Client(user)
-
-    def get_client(self, client_id, client_secret):
-        try:
-            client = Client(User.objects.get(username=client_id))
-        except User.DoesNotExist:
-            raise self.NoSuchClient()
-        if not client.check_secret(client_secret):
-            raise self.NoSuchClient()
-        return client
-
-    def delete_client(self, client):
-        User.objects.get(username=client.client_id).delete()

@@ -1,11 +1,13 @@
 from __future__ import absolute_import
 
+from sweaur2.client import Client
 from sweaur2.exceptions import InvalidClient, InvalidGrant, InvalidRequest, InvalidScope, UnsupportedGrantType
 from sweaur2.policy import LowSecurityPolicy
 from sweaur2.processor import OAuth2Processor
 from sweaur2.tokens import AccessToken, RefreshToken
 
-from .models import Client, DjangoClientStore, DjangoTokenStore
+from .client import DjangoClientStore
+from .models import DjangoTokenStore
 
 
 class ClientForTest(Client):
