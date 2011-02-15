@@ -8,66 +8,39 @@ class Migration(SchemaMigration):
 
     def forwards(self, orm):
         
-        # Adding model 'BearerRefreshToken'
-        db.create_table('django_sweaur2_bearerrefreshtoken', (
+        # Adding model 'RefreshToken'
+        db.create_table('django_sweaur2_refreshtoken', (
             ('id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
             ('client', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['auth.User'])),
             ('token_string', self.gf('django.db.models.fields.CharField')(unique=True, max_length=16)),
+            ('scope', self.gf('django.db.models.fields.TextField')(null=True, blank=True)),
             ('creation_time', self.gf('django.db.models.fields.DateTimeField')()),
-            ('expires_in', self.gf('django.db.models.fields.IntegerField')(null=True)),
         ))
-        db.send_create_signal('django_sweaur2', ['BearerRefreshToken'])
+        db.send_create_signal('django_sweaur2', ['RefreshToken'])
 
-        # Adding model 'BearerAccessToken'
-        db.create_table('django_sweaur2_beareraccesstoken', (
+        # Adding model 'AccessToken'
+        db.create_table('django_sweaur2_accesstoken', (
             ('id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
             ('client', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['auth.User'])),
             ('token_string', self.gf('django.db.models.fields.CharField')(unique=True, max_length=16)),
+            ('scope', self.gf('django.db.models.fields.TextField')(null=True, blank=True)),
             ('creation_time', self.gf('django.db.models.fields.DateTimeField')()),
             ('expires_in', self.gf('django.db.models.fields.IntegerField')(null=True)),
-            ('old_refresh_token', self.gf('django.db.models.fields.related.OneToOneField')(related_name='new_access_token', unique=True, null=True, to=orm['django_sweaur2.BearerRefreshToken'])),
-            ('new_refresh_token', self.gf('django.db.models.fields.related.OneToOneField')(related_name='old_access_token', unique=True, null=True, to=orm['django_sweaur2.BearerRefreshToken'])),
+            ('old_refresh_token', self.gf('django.db.models.fields.related.OneToOneField')(related_name='new_access_token', unique=True, null=True, to=orm['django_sweaur2.RefreshToken'])),
+            ('new_refresh_token', self.gf('django.db.models.fields.related.OneToOneField')(related_name='old_access_token', unique=True, null=True, to=orm['django_sweaur2.RefreshToken'])),
+            ('token_type_id', self.gf('django.db.models.fields.SmallIntegerField')()),
+            ('extra_parameters', self.gf('django.db.models.fields.TextField')(blank=True)),
         ))
-        db.send_create_signal('django_sweaur2', ['BearerAccessToken'])
-
-        # Adding model 'MACRefreshToken'
-        db.create_table('django_sweaur2_macrefreshtoken', (
-            ('id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
-            ('client', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['auth.User'])),
-            ('token_string', self.gf('django.db.models.fields.CharField')(unique=True, max_length=16)),
-            ('creation_time', self.gf('django.db.models.fields.DateTimeField')()),
-            ('expires_in', self.gf('django.db.models.fields.IntegerField')(null=True)),
-        ))
-        db.send_create_signal('django_sweaur2', ['MACRefreshToken'])
-
-        # Adding model 'MACAccessToken'
-        db.create_table('django_sweaur2_macaccesstoken', (
-            ('id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
-            ('client', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['auth.User'])),
-            ('token_string', self.gf('django.db.models.fields.CharField')(unique=True, max_length=16)),
-            ('creation_time', self.gf('django.db.models.fields.DateTimeField')()),
-            ('expires_in', self.gf('django.db.models.fields.IntegerField')(null=True)),
-            ('old_refresh_token', self.gf('django.db.models.fields.related.OneToOneField')(related_name='new_access_token', unique=True, null=True, to=orm['django_sweaur2.MACRefreshToken'])),
-            ('new_refresh_token', self.gf('django.db.models.fields.related.OneToOneField')(related_name='old_access_token', unique=True, null=True, to=orm['django_sweaur2.MACRefreshToken'])),
-            ('secret_token_string', self.gf('django.db.models.fields.CharField')(max_length=16)),
-            ('algorithm', self.gf('django.db.models.fields.SmallIntegerField')()),
-        ))
-        db.send_create_signal('django_sweaur2', ['MACAccessToken'])
+        db.send_create_signal('django_sweaur2', ['AccessToken'])
 
 
     def backwards(self, orm):
         
-        # Deleting model 'BearerRefreshToken'
-        db.delete_table('django_sweaur2_bearerrefreshtoken')
+        # Deleting model 'RefreshToken'
+        db.delete_table('django_sweaur2_refreshtoken')
 
-        # Deleting model 'BearerAccessToken'
-        db.delete_table('django_sweaur2_beareraccesstoken')
-
-        # Deleting model 'MACRefreshToken'
-        db.delete_table('django_sweaur2_macrefreshtoken')
-
-        # Deleting model 'MACAccessToken'
-        db.delete_table('django_sweaur2_macaccesstoken')
+        # Deleting model 'AccessToken'
+        db.delete_table('django_sweaur2_accesstoken')
 
 
     models = {
@@ -78,7 +51,7 @@ class Migration(SchemaMigration):
             'permissions': ('django.db.models.fields.related.ManyToManyField', [], {'to': "orm['auth.Permission']", 'symmetrical': 'False', 'blank': 'True'})
         },
         'auth.permission': {
-            'Meta': {'ordering': "('content_type__app_label', 'content_type__model', 'codename')", 'unique_together': "(('content_type', 'codename'),)", 'object_name': 'Permission'},
+            'Meta': {'unique_together': "(('content_type', 'codename'),)", 'object_name': 'Permission'},
             'codename': ('django.db.models.fields.CharField', [], {'max_length': '100'}),
             'content_type': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['contenttypes.ContentType']"}),
             'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
@@ -91,9 +64,9 @@ class Migration(SchemaMigration):
             'first_name': ('django.db.models.fields.CharField', [], {'max_length': '30', 'blank': 'True'}),
             'groups': ('django.db.models.fields.related.ManyToManyField', [], {'to': "orm['auth.Group']", 'symmetrical': 'False', 'blank': 'True'}),
             'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'is_active': ('django.db.models.fields.BooleanField', [], {'default': 'True'}),
-            'is_staff': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
-            'is_superuser': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
+            'is_active': ('django.db.models.fields.BooleanField', [], {'default': 'True', 'blank': 'True'}),
+            'is_staff': ('django.db.models.fields.BooleanField', [], {'default': 'False', 'blank': 'True'}),
+            'is_superuser': ('django.db.models.fields.BooleanField', [], {'default': 'False', 'blank': 'True'}),
             'last_login': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
             'last_name': ('django.db.models.fields.CharField', [], {'max_length': '30', 'blank': 'True'}),
             'password': ('django.db.models.fields.CharField', [], {'max_length': '128'}),
@@ -101,48 +74,31 @@ class Migration(SchemaMigration):
             'username': ('django.db.models.fields.CharField', [], {'unique': 'True', 'max_length': '30'})
         },
         'contenttypes.contenttype': {
-            'Meta': {'ordering': "('name',)", 'unique_together': "(('app_label', 'model'),)", 'object_name': 'ContentType', 'db_table': "'django_content_type'"},
+            'Meta': {'unique_together': "(('app_label', 'model'),)", 'object_name': 'ContentType', 'db_table': "'django_content_type'"},
             'app_label': ('django.db.models.fields.CharField', [], {'max_length': '100'}),
             'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'model': ('django.db.models.fields.CharField', [], {'max_length': '100'}),
             'name': ('django.db.models.fields.CharField', [], {'max_length': '100'})
         },
-        'django_sweaur2.beareraccesstoken': {
-            'Meta': {'object_name': 'BearerAccessToken'},
+        'django_sweaur2.accesstoken': {
+            'Meta': {'object_name': 'AccessToken'},
             'client': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['auth.User']"}),
             'creation_time': ('django.db.models.fields.DateTimeField', [], {}),
             'expires_in': ('django.db.models.fields.IntegerField', [], {'null': 'True'}),
+            'extra_parameters': ('django.db.models.fields.TextField', [], {'blank': 'True'}),
             'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'new_refresh_token': ('django.db.models.fields.related.OneToOneField', [], {'related_name': "'old_access_token'", 'unique': 'True', 'null': 'True', 'to': "orm['django_sweaur2.BearerRefreshToken']"}),
-            'old_refresh_token': ('django.db.models.fields.related.OneToOneField', [], {'related_name': "'new_access_token'", 'unique': 'True', 'null': 'True', 'to': "orm['django_sweaur2.BearerRefreshToken']"}),
-            'token_string': ('django.db.models.fields.CharField', [], {'unique': 'True', 'max_length': '16'})
+            'new_refresh_token': ('django.db.models.fields.related.OneToOneField', [], {'related_name': "'old_access_token'", 'unique': 'True', 'null': 'True', 'to': "orm['django_sweaur2.RefreshToken']"}),
+            'old_refresh_token': ('django.db.models.fields.related.OneToOneField', [], {'related_name': "'new_access_token'", 'unique': 'True', 'null': 'True', 'to': "orm['django_sweaur2.RefreshToken']"}),
+            'scope': ('django.db.models.fields.TextField', [], {'null': 'True', 'blank': 'True'}),
+            'token_string': ('django.db.models.fields.CharField', [], {'unique': 'True', 'max_length': '16'}),
+            'token_type_id': ('django.db.models.fields.SmallIntegerField', [], {})
         },
-        'django_sweaur2.bearerrefreshtoken': {
-            'Meta': {'object_name': 'BearerRefreshToken'},
+        'django_sweaur2.refreshtoken': {
+            'Meta': {'object_name': 'RefreshToken'},
             'client': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['auth.User']"}),
             'creation_time': ('django.db.models.fields.DateTimeField', [], {}),
-            'expires_in': ('django.db.models.fields.IntegerField', [], {'null': 'True'}),
             'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'token_string': ('django.db.models.fields.CharField', [], {'unique': 'True', 'max_length': '16'})
-        },
-        'django_sweaur2.macaccesstoken': {
-            'Meta': {'object_name': 'MACAccessToken'},
-            'algorithm': ('django.db.models.fields.SmallIntegerField', [], {}),
-            'client': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['auth.User']"}),
-            'creation_time': ('django.db.models.fields.DateTimeField', [], {}),
-            'expires_in': ('django.db.models.fields.IntegerField', [], {'null': 'True'}),
-            'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'new_refresh_token': ('django.db.models.fields.related.OneToOneField', [], {'related_name': "'old_access_token'", 'unique': 'True', 'null': 'True', 'to': "orm['django_sweaur2.MACRefreshToken']"}),
-            'old_refresh_token': ('django.db.models.fields.related.OneToOneField', [], {'related_name': "'new_access_token'", 'unique': 'True', 'null': 'True', 'to': "orm['django_sweaur2.MACRefreshToken']"}),
-            'secret_token_string': ('django.db.models.fields.CharField', [], {'max_length': '16'}),
-            'token_string': ('django.db.models.fields.CharField', [], {'unique': 'True', 'max_length': '16'})
-        },
-        'django_sweaur2.macrefreshtoken': {
-            'Meta': {'object_name': 'MACRefreshToken'},
-            'client': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['auth.User']"}),
-            'creation_time': ('django.db.models.fields.DateTimeField', [], {}),
-            'expires_in': ('django.db.models.fields.IntegerField', [], {'null': 'True'}),
-            'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'scope': ('django.db.models.fields.TextField', [], {'null': 'True', 'blank': 'True'}),
             'token_string': ('django.db.models.fields.CharField', [], {'unique': 'True', 'max_length': '16'})
         }
     }
