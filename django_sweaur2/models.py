@@ -14,7 +14,12 @@ from sweaur2.tokens import AccessToken as Sweaur2AccessToken, RefreshToken as Sw
 from .settings import ACCESS_TOKEN_LENGTH, ACCESS_TOKEN_SECRET_LENGTH
 
 
-class TokenManager(models.Manager):
+class DjangoTokenStore(models.Manager, TokenStore):
+    token_types = (
+        'Bearer',
+        'MAC',
+    )
+
     def create_from_sweaur2_access_token(self, token):
         if token.token_type == 'Bearer':
             extra_parameters = {}
@@ -24,7 +29,7 @@ class TokenManager(models.Manager):
         return self.create(client=token.client.user, 
                            token_string=token.token_string,
                            scope=token.scope,
-                           token_type_id=DjangoTokenStore.token_types.index(token.token_type),
+                           token_type_id=self.token_types.index(token.token_type),
                            expires_in=token.expires_in,
                            extra_parameters=extra_parameters)
 
@@ -32,6 +37,38 @@ class TokenManager(models.Manager):
         return self.create(client=token.client.user, 
                            token_string=token.token_string,
                            scope=token.scope)
+
+    def save_access_token(self, token):
+        try:
+            db_token_obj = AccessToken.objects.get(token_string=token.token_string)
+            db_token_obj.update_from_sweaur2_token(token)
+        except AccessToken.DoesNotExist:
+            db_token_obj = AccessToken.objects.create_from_sweaur2_access_token(token)
+        if token.old_refresh_token_string:
+            db_token_obj.old_refresh_token = RefreshToken.objects.get(token_string=token.old_refresh_token_string)
+        if token.new_refresh_token_string:
+            db_token_obj.new_refresh_token = RefreshToken.objects.get(token_string=token.new_refresh_token_string)
+        db_token_obj.save()
+
+    def save_refresh_token(self, token):
+        try:
+            db_token_obj = RefreshToken.objects.get(token_string=token.token_string)
+            db_token_obj.update_from_sweaur2_token(token)
+        except RefreshToken.DoesNotExist:
+            db_token_obj = RefreshToken.objects.create_from_sweaur2_refresh_token(token)
+
+    def get_access_token(self, token_string):
+        try:
+            return AccessToken.objects.get(token_string=token_string).to_sweaur2_token()
+        except AccessToken.DoesNotExist:
+            raise self.NoSuchToken()
+
+    def get_refresh_token(self, token_string):
+        try:
+            return RefreshToken.objects.get(token_string=token_string).to_sweaur2_token()
+        except RefreshToken.DoesNotExist:
+            raise self.NoSuchToken()
+
 
 
 class Token(models.Model):
@@ -43,7 +80,7 @@ class Token(models.Model):
     class Meta(object):
         abstract = True
 
-    objects = TokenManager()
+    objects = DjangoTokenStore()
 
     def save(self, *args, **kwargs):
         if not self.id:
@@ -93,7 +130,7 @@ class AccessToken(Token):
             new_refresh_token_string = None
         return Sweaur2AccessToken(client=Client(self.client),
                                   scope=self.scope,
-                                  token_type=DjangoTokenStore.token_types[self.token_type_id],
+                                  token_type=self.objects.token_types[self.token_type_id],
                                   expires_in=self.expires_in,
                                   token_string=self.token_string,
                                   old_refresh_token=old_refresh_token_string,
@@ -105,47 +142,9 @@ class AccessToken(Token):
         self.scope = token.scope
         self.token_string = token.token_string
         # old/new refresh_token?
-        self.token_type_id = DjangoTokenStore.token_types.index(token.token_type)
+        self.token_type_id = self.objects.token_types.index(token.token_type)
         self.extra_parameters = token.extra_parameters
         self.save()
-
-
-class DjangoTokenStore(TokenStore):
-    token_types = (
-        'Bearer',
-        'MAC',
-    )
-
-    def save_access_token(self, token):
-        try:
-            db_token_obj = AccessToken.objects.get(token_string=token.token_string)
-            db_token_obj.update_from_sweaur2_token(token)
-        except AccessToken.DoesNotExist:
-            db_token_obj = AccessToken.objects.create_from_sweaur2_access_token(token)
-        if token.old_refresh_token_string:
-            db_token_obj.old_refresh_token = RefreshToken.objects.get(token_string=token.old_refresh_token_string)
-        if token.new_refresh_token_string:
-            db_token_obj.new_refresh_token = RefreshToken.objects.get(token_string=token.new_refresh_token_string)
-        db_token_obj.save()
-
-    def save_refresh_token(self, token):
-        try:
-            db_token_obj = RefreshToken.objects.get(token_string=token.token_string)
-            db_token_obj.update_from_sweaur2_token(token)
-        except RefreshToken.DoesNotExist:
-            db_token_obj = RefreshToken.objects.create_from_sweaur2_refresh_token(token)
-
-    def get_access_token(self, token_string):
-        try:
-            return AccessToken.objects.get(token_string=token_string).to_sweaur2_token()
-        except AccessToken.DoesNotExist:
-            raise self.NoSuchToken()
-
-    def get_refresh_token(self, token_string):
-        try:
-            return RefreshToken.objects.get(token_string=token_string).to_sweaur2_token()
-        except RefreshToken.DoesNotExist:
-            raise self.NoSuchToken()
 
 
 class Client(Sweaur2Client):
