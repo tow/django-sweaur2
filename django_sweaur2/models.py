@@ -41,7 +41,6 @@ class DjangoTokenStore(models.Manager, TokenStore):
     def save_access_token(self, token):
         try:
             db_token_obj = AccessToken.objects.get(token_string=token.token_string)
-            db_token_obj.update_from_sweaur2_token(token)
         except AccessToken.DoesNotExist:
             db_token_obj = AccessToken.objects.create_from_sweaur2_access_token(token)
         if token.old_refresh_token_string:
@@ -53,7 +52,6 @@ class DjangoTokenStore(models.Manager, TokenStore):
     def save_refresh_token(self, token):
         try:
             db_token_obj = RefreshToken.objects.get(token_string=token.token_string)
-            db_token_obj.update_from_sweaur2_token(token)
         except RefreshToken.DoesNotExist:
             db_token_obj = RefreshToken.objects.create_from_sweaur2_refresh_token(token)
 
@@ -104,13 +102,6 @@ class RefreshToken(Token):
                                    new_access_token_string=new_access_token_string,
                                    token_string=self.token_string)
 
-    def update_from_sweaur2_token(self, token):
-        self.client = token.client.user
-        self.scope = token.scope
-        self.token_string = token.token_string
-        # old/new access_token?
-        self.save()
-
 
 class AccessToken(Token):
     expires_in = models.IntegerField(null=True)
@@ -136,15 +127,6 @@ class AccessToken(Token):
                                   old_refresh_token=old_refresh_token_string,
                                   new_refresh_token=new_refresh_token_string,
                                   extra_parameters=self.extra_parameters)
-
-    def update_from_sweaur2_token(self, token):
-        self.client = token.client.user
-        self.scope = token.scope
-        self.token_string = token.token_string
-        # old/new refresh_token?
-        self.token_type_id = self.objects.token_types.index(token.token_type)
-        self.extra_parameters = token.extra_parameters
-        self.save()
 
 
 class Client(Sweaur2Client):
