@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-import datetime
+import datetime, json
 
 from django.contrib.auth.models import User
 from django.db import models
@@ -14,22 +14,17 @@ from .settings import ACCESS_TOKEN_LENGTH, ACCESS_TOKEN_SECRET_LENGTH
 
 class DjangoTokenStore(models.Manager, TokenStore):
     token_types = (
-        'Bearer',
-        'MAC',
+        'bearer',
+        'mac',
     )
 
     def create_from_sweaur2_access_token(self, token):
-        if token.token_type == 'Bearer':
-            extra_parameters = {}
-        if token.token_type == 'MAC':
-            extra_parameters = {'secret_token_string':token.secret_token_string,
-                                'algorithm':token.algorithm}
         return self.create(client=token.client.user, 
                            token_string=token.token_string,
                            scope=token.scope,
                            token_type_id=self.token_types.index(token.token_type),
                            expires_in=token.expires_in,
-                           extra_parameters=extra_parameters)
+                           extra_parameters=json.dumps(token.extra_parameters))
 
     def create_from_sweaur2_refresh_token(self, token):
         return self.create(client=token.client.user, 
@@ -53,9 +48,13 @@ class DjangoTokenStore(models.Manager, TokenStore):
         except RefreshToken.DoesNotExist:
             db_token_obj = RefreshToken.objects.create_from_sweaur2_refresh_token(token)
 
-    def get_access_token(self, token_string):
+    def get_access_token(self, token_string, token_type):
         try:
-            return AccessToken.objects.get(token_string=token_string).to_sweaur2_token()
+            token_type_id = self.token_types.index(token_type)
+        except ValueError:
+            raise ValueError("Unknown token_type")
+        try:
+            return AccessToken.objects.get(token_string=token_string, token_type_id=token_type_id).to_sweaur2_token()
         except AccessToken.DoesNotExist:
             raise self.NoSuchToken()
 
@@ -109,19 +108,19 @@ class AccessToken(Token):
     extra_parameters = models.TextField(blank=True)
 
     def to_sweaur2_token(self):
-        try:
+        if self.old_refresh_token:
             old_refresh_token_string = self.old_refresh_token.token_string
-        except RefreshToken.DoesNotExist:
+        else:
             old_refresh_token_string = None
-        try:
+        if self.new_refresh_token:
             new_refresh_token_string = self.new_refresh_token.token_string
-        except RefreshToken.DoesNotExist:
+        else:
             new_refresh_token_string = None
         return Sweaur2AccessToken(client=Client(self.client),
                                   scope=self.scope,
-                                  token_type=self.objects.token_types[self.token_type_id],
+                                  token_type=DjangoTokenStore.token_types[self.token_type_id],
                                   expires_in=self.expires_in,
                                   token_string=self.token_string,
-                                  old_refresh_token=old_refresh_token_string,
-                                  new_refresh_token=new_refresh_token_string,
-                                  extra_parameters=self.extra_parameters)
+                                  old_refresh_token_string=old_refresh_token_string,
+                                  new_refresh_token_string=new_refresh_token_string,
+                                  **json.loads(self.extra_parameters))
