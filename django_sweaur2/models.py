@@ -2,14 +2,17 @@ from __future__ import absolute_import
 
 import datetime, json
 
+from django.conf import settings
 from django.contrib.auth.models import User
+from django.core.cache import get_cache
+from django.core.cache.backends.dummy import DummyCache
 from django.db import models
 
 from sweaur2.token_store import TokenStore
 from sweaur2.tokens import AccessToken as Sweaur2AccessToken, RefreshToken as Sweaur2RefreshToken
 
 from .client import Client
-from .settings import ACCESS_TOKEN_LENGTH, ACCESS_TOKEN_SECRET_LENGTH
+from .settings import ACCESS_TOKEN_LENGTH, ACCESS_TOKEN_SECRET_LENGTH, CACHE_FOR_NONCE, CACHE_PREFIX_FOR_NONCE, CACHE_TIMEOUT_FOR_NONCE
 
 
 class DjangoTokenStore(models.Manager, TokenStore):
@@ -17,6 +20,15 @@ class DjangoTokenStore(models.Manager, TokenStore):
         'bearer',
         'mac',
     )
+
+    def __init__(self, *args, **kwargs):
+        try:
+            self.cache = get_cache(CACHE_FOR_NONCE)
+        except KeyError:
+            raise EnvironmentError("Must configure cache for django-sweaur2")
+        if isinstance(self.cache, DummyCache):
+            raise EnvironmentError("Don't use the DummyCache for django-sweaur2")
+        super(DjangoTokenStore, self).__init__(*args, **kwargs)
 
     def create_from_sweaur2_access_token(self, token):
         return self.create(client=token.client.user, 
@@ -64,6 +76,12 @@ class DjangoTokenStore(models.Manager, TokenStore):
         except RefreshToken.DoesNotExist:
             raise self.NoSuchToken()
 
+    def check_nonce(self, nonce, timestamp, access_token):
+        cache_label = '%s-%s-%s-%s' % (CACHE_PREFIX_FOR_NONCE, nonce, timestamp, access_token)
+        if self.cache.get(cache_label):
+            return False
+        self.cache.set(cache_label, True, CACHE_TIMEOUT_FOR_NONCE)
+        return True
 
 
 class Token(models.Model):
