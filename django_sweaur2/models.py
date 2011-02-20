@@ -112,7 +112,7 @@ class RefreshToken(Token):
         except AccessToken.DoesNotExist:
             new_access_token_string = None
         return Sweaur2RefreshToken(client=Client(self.client),
-                                   scope=self.scope,
+                                   scope=self.scope or '',
                                    old_access_token_string=old_access_token_string,
                                    new_access_token_string=new_access_token_string,
                                    token_string=self.token_string)
