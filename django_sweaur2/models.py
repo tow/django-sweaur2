@@ -26,7 +26,7 @@ class DjangoTokenStore(models.Manager, TokenStore):
             self.cache = get_cache(CACHE_FOR_NONCE)
         except KeyError:
             raise EnvironmentError("Must configure cache for django-sweaur2")
-        if isinstance(self.cache, DummyCache):
+        if isinstance(self.cache, DummyCache) and not settings.DEBUG:
             raise EnvironmentError("Don't use the DummyCache for django-sweaur2")
         super(DjangoTokenStore, self).__init__(*args, **kwargs)
 
